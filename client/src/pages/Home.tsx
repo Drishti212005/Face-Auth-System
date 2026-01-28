@@ -83,6 +83,8 @@ export default function Home() {
             
             if (resizedDetections.length > 0) {
               const detection = resizedDetections[0];
+              if (!detection.detection || !detection.detection.box) return;
+              
               const expressions = detection.expressions;
               
               // Liveness Check: Smile

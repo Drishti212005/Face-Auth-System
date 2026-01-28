@@ -46,7 +46,7 @@ export default function Register() {
         .withFaceLandmarks()
         .withFaceDescriptor();
 
-      if (detection) {
+      if (detection && detection.detection && detection.detection.box) {
         setDescriptor(detection.descriptor);
         toast({
           title: "Face Captured",
