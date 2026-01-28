@@ -1,38 +1,52 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { users, attendance, type User, type InsertUser, type Attendance, type InsertAttendance } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
+  getUser(id: number): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  createAttendance(record: InsertAttendance): Promise<Attendance>;
+  getAttendanceRecords(): Promise<(Attendance & { user: User })[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async createAttendance(record: InsertAttendance): Promise<Attendance> {
+    const [entry] = await db.insert(attendance).values(record).returning();
+    return entry;
+  }
+
+  async getAttendanceRecords(): Promise<(Attendance & { user: User })[]> {
+    const records = await db
+      .select()
+      .from(attendance)
+      .innerJoin(users, eq(attendance.userId, users.id))
+      .orderBy(desc(attendance.timestamp));
+      
+    // Map to structure expected by frontend if needed, but innerJoin returns { attendance: ..., users: ... }
+    // Drizzle join result is an array of objects like { attendance: Attendance, users: User }
+    // We need to map it to Attendance & { user: User }
+    
+    return records.map(({ attendance, users }) => ({
+      ...attendance,
+      user: users,
+    }));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
