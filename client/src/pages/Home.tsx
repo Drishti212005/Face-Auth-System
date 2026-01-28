@@ -65,7 +65,7 @@ export default function Home() {
         : null;
 
       const detect = async () => {
-        if (!videoRef.paused && !videoRef.ended && attendanceMode === 'idle') {
+        if (!videoRef.paused && !videoRef.ended && attendanceMode === 'idle' && videoRef.videoWidth > 0) {
           // Detect face with expressions
           const detections = await faceapi
             .detectAllFaces(videoRef)

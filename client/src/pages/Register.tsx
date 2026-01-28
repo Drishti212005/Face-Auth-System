@@ -36,7 +36,7 @@ export default function Register() {
   }, []);
 
   const handleCapture = async () => {
-    if (!videoRef || !name) return;
+    if (!videoRef || !name || videoRef.videoWidth === 0) return;
     
     setIsCapturing(true);
     try {
